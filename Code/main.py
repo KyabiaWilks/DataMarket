@@ -3,14 +3,18 @@ from shared import ml_model, price_range
 from RevenueDiver import RevenueDivider
 from HonestAuction import HonestAuction
 from DynamicPricer import DynamicPricer
+from UCBPricer import UCBPricer
 from rmse import gain_function_rmse, generate_data
 from sklearn.linear_model import LinearRegression
 
-
+whichPricer = 1  # 可以选择 "DynamicPricer"(0) 或 "UCBPricer"(1)
 # 1. 初始化市场组件
 # 假设买家的估值和市场的价格都在  范围内
 price_range = (50, 500)
-pricer = DynamicPricer(price_range=price_range, num_experts=20, learning_rate_delta=0.1)
+if whichPricer == 0:
+    pricer = DynamicPricer(price_range=price_range, num_experts=20, learning_rate_delta=0.1)
+else:
+    pricer = UCBPricer(price_range=price_range, num_experts=20, confidence_c=2.0)
 auction = HonestAuction(ml_model=ml_model, gain_function=gain_function_rmse)
 divider = RevenueDivider(ml_model=ml_model, gain_function=gain_function_rmse)
 
@@ -19,9 +23,9 @@ X, Y = generate_data(M=10, T=100)
 
 # 3. 模拟单个买家 n 的交易
 print("--- 开始模拟单次交易 ---")
-
+print(f"使用的定价器: {'DynamicPricer' if whichPricer == 0 else 'UCBPricer'}")
 # 步骤 1: 市场定价
-p_n, _ = pricer.choose_price()
+p_n, chosen_index = pricer.choose_price()
 print(f"步骤 1: 市场设定价格 p_n = {p_n:.2f}")
 
 # 步骤 2 & 3: 买家到达并出价
@@ -47,7 +51,11 @@ revenue_n = auction.calculate_revenue(X, Y, p_n, b_n)
 print(f"步骤 6: 市场向买家收取收益 r_n = {revenue_n:.2f}")
 
 # 步骤 7: 市场更新价格模型
-pricer.update_weights(auction, X, Y, b_n)
+if whichPricer == 0:
+    pricer.update_weights(auction, X, Y, b_n)
+else:
+    revenue_n = auction.calculate_revenue(X, Y, p_n, b_n)
+    pricer.update_stats(chosen_index, revenue_n)
 print(f"步骤 7: 市场价格模型权重已更新。")
 
 # 步骤 8: 市场分配收益给卖家
