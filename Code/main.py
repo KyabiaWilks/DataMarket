@@ -7,7 +7,7 @@ from UCBPricer import UCBPricer
 from Security.MarketVerificationService import MarketVerificationService
 from Security.VerifiableSeller import VerifiableSeller
 from rmse import gain_function_rmse, generate_data
-from Security.SecurityMain import dataRegister
+from Code.SecurityMain import dataRegister
 from sklearn.linear_model import LinearRegression
 
 whichPricer = 1  # 可以选择 "DynamicPricer"(0) 或 "UCBPricer"(1)
@@ -21,7 +21,7 @@ X = np.array(registered_features)
 print(f"--- 数据注册完成，市场中有 {X.shape} 个已验证的数据特征 ---\n")
 
 # 1. 初始化市场组件
-# 假设买家的估值和市场的价格都在  范围内
+# 假设买家的估值和市场的价格都在范围内
 price_range = (50, 500)
 if whichPricer == 0:
     pricer = DynamicPricer(price_range=price_range, num_experts=20, learning_rate_delta=0.1)
