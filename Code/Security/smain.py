@@ -41,6 +41,10 @@ if __name__ == "__main__":
     # 2. Create sellers
     sellers = [VerifiableSeller(f"Seller-{i+1}") for i in range(NUM_SELLERS)]
     
+    for seller in sellers:
+        seller_data, _ = generate_data(M=1, T=100)
+        seller.set_data(seller_data)
+
     # Add a malicious seller who tries to submit duplicate data
     malicious_seller = VerifiableSeller("MaliciousSeller")
     malicious_seller.set_data(sellers[0].data) # Copy data from Seller-1
@@ -87,8 +91,8 @@ if __name__ == "__main__":
     divider = RevenueDivider(ml_model=ml_model, gain_function=gain_function_rmse)
 
     # 2. Generate a buyer's prediction task
-    _, Y_task = generate_data(M=X_verified.shape, T=100)
-    
+    _, Y_task = generate_data(M=X_verified.shape[0], T=100)
+
     # 3. Define a task that requires a specific credential
     REQUIRED_CREDENTIAL = "Certified_Medical_Researcher"
     print(f"\n[Market] A new prediction task is available. Access requires '{REQUIRED_CREDENTIAL}' credential.")

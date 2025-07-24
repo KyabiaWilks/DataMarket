@@ -94,11 +94,23 @@ class HonestAuction:
 
     def get_prediction_gain(self, X, Y, p_n, b_n):
         X_tilde = self._allocation_function(X, p_n, b_n)
-        X_train = X_tilde.T
-        y_train = Y
-        self.ml_model.fit(X_train, y_train)
+        if X_tilde is None:
+            raise ValueError("_allocation_function returned None")
+
+        # print(f"X_tilde.shape before squeeze: {X_tilde.shape}")
+
+        if X_tilde.ndim == 3:
+            X_tilde = X_tilde.squeeze(axis=1)
+            # print(f"X_tilde.shape after squeeze: {X_tilde.shape}")
+
+        X_train = X_tilde.T  # 一定要先赋值，后续才可访问
+
+        # print(f"X_train.shape before fit: {X_train.shape}")
+        # print(f"y_train.shape: {Y.shape}")
+
+        self.ml_model.fit(X_train, Y)
         y_pred = self.ml_model.predict(X_train)
-        return self.gain_function(y_train, y_pred)
+        return self.gain_function(Y, y_pred)
 
     def calculate_revenue(self, X, Y, p_n, b_n):
         gain_at_b_n = self.get_prediction_gain(X, Y, p_n, b_n)
@@ -110,7 +122,7 @@ class HonestAuction:
 
 class UCBPricer:
     def __init__(self, price_range, num_experts, confidence_c=2.0):
-        self.experts = np.linspace(price_range, price_range[1], num_experts)
+        self.experts = np.linspace(price_range[0], price_range[1], num_experts)
         self.num_experts = num_experts
         self.c = confidence_c
         self.counts = np.zeros(num_experts)
@@ -124,7 +136,7 @@ class UCBPricer:
                 return self.experts[i], i
         ucb_values = self.values + np.sqrt((self.c * np.log(self.total_rounds)) / self.counts)
         chosen_expert_index = np.argmax(ucb_values)
-        return self.experts[chosen_expert_index], chosen_expert_index
+        return float(self.experts[chosen_expert_index]), chosen_expert_index
 
     def update_stats(self, chosen_expert_index, reward):
         self.counts[chosen_expert_index] += 1
@@ -143,11 +155,19 @@ class RevenueDivider:
             return 0.0
         X_train = X_subset.T
         y_train = Y
+
+        # print(f"2X_train.shape: {X_train.shape}")
+        # print(f"2y_train.shape: {y_train.shape}")
+        
         self.ml_model.fit(X_train, y_train)
         y_pred = self.ml_model.predict(X_train)
         return self.gain_function(y_train, y_pred)
 
     def shapley_approx(self, X, Y, K):
+        X = np.squeeze(X)
+        if X.ndim != 2:
+            raise ValueError(f"X must be 2-dimensional after squeeze, but got shape: {X.shape}")
+        
         M, T = X.shape
         shapley_values = np.zeros(M)
         for _ in range(K):
@@ -164,8 +184,12 @@ class RevenueDivider:
         return shapley_values / K
 
     def shapley_robust(self, X, Y, K, lambda_param=np.log(2)):
+        X = np.squeeze(X)
+        if X.ndim != 2:
+            raise ValueError(f"[shapley_robust] X must be 2D after squeeze, got shape: {X.shape}")
+    
         approx_shapley = self.shapley_approx(X, Y, K)
-        M = X.shape
+        M, T = X.shape
         robust_shapley = np.zeros(M)
         similarity_matrix = cosine_similarity(X)
         for m in range(M):
