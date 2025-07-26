@@ -486,27 +486,27 @@ $ w_i^(n+1) \u{2261} w_i \u{00B7} (1+\u{03B4} \u{00B7} hat(g_i)) $
 = 5 #fakebold[实验结果与分析]
 
 == 5.1 #fakebold[基础复现]
-== 5.1.1 #fakebold[实验结果]
+=== 5.1.1 #fakebold[实验结果]
 #image("images/Dynamic.png")
-== 5.1.2 #fakebold[实验分析]
+=== 5.1.2 #fakebold[实验分析]
 
 按照图示步骤模拟了机器学习市场模型交易完整流程。
 
 其中，诚实的机器学习模型拍卖（Honest Auction），MWU 算法动态定价（Multiplicative Weights Update） 和 收益分配（Shapley值） 均在流程中有实现，已在上一节中分别给出核心算法；对于用户数据的模拟则有所简化。
 
 == 5.2 #fakebold[更多的定价算法]
-== 5.2.1 #fakebold[实验结果]
+=== 5.2.1 #fakebold[实验结果]
 #image("images/UCB.png")
-== 5.2.2 #fakebold[实验分析]
+=== 5.2.2 #fakebold[实验分析]
 按照图示步骤模拟了机器学习市场模型交易完整流程。
 
 将定价算法从DynamicPricer改为UCBPricer，使用UCB定价策略替代了MWU定价策略。在数据生成和定价环节均有变化，可以看到程序成功跑通。
 
 == 5.3 #fakebold[隐私计算]
-== 5.3.1 #fakebold[实验结果]
+=== 5.3.1 #fakebold[实验结果]
 #image("images/ZKP.png")
 #image("images/ZKP2.png")
-== 5.3.2 #fakebold[实验分析]
+=== 5.3.2 #fakebold[实验分析]
 按照图示步骤模拟了带上隐私计算功能的机器学习市场模型交易完整流程。
 
 其中，生成公钥和ZKP的过程均在输出中有体现，对于VC过程，Alice的数据模拟了VC通过并正常进行拍卖定价和收益分配的全流程，而Bob的数据则模拟了VC验证失败的情况，可以看到拍卖正常中止。
