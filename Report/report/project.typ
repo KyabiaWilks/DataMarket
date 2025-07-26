@@ -35,136 +35,119 @@
 + 使用Shapley值分配卖家收入(带鲁棒性)
 #figure[
 #table(
-  columns: 4,
+  columns: 3,
   [步骤],
-  [功能],
   [对应模块],
   [简要说明],
-  [0.数据生成],
-  [生成市场数据(特征 X 和标签 Y)],
+  [0.生成市场数据(特征 X 和标签 Y)],
   [`generate_data`(from `rmse`)],
   [创建模拟训练数据，用于收益计算和模型评估],
-  [1.市场定价],
-  [动态定价或UCB定价],
+  [1.动态定价或UCB定价],
   [`choose_price()`(from `DynamicPricer`/`UCBPricer`)],
-  [通过专家权重选择最优价格],
+  [通过专家权重选最优价格],
   [2&3.买家出价],
-  [买家根据市场定价出价],
-  [按照买家诚实出价的假设进行模拟设定，不涉及具体模块],
+  [按买家诚实出价的假设进行模拟，不涉及具体模块],
   [设定买家的估值和出价],
-  [4&5.模型训练],
-  [训练模型并计算预测增益],
+  [4&5.训练模型并计算预测增益],
   [`get_prediction_gain()`(from `HonestAuction`)],
   [使用降噪数据训练模型，计算预测精度],
-  [6.收益计算],
-  [计算买家收益和市场收入],
+  [6.计算买家收益和市场收入],
   [`calculate_revenue()`(from `HonestAuction`)],
   [基于Myerson支付规则计算买家应付费用],
-  [7.价格更新],
-  [更新市场定价模型],
+  [7.更新市场定价模型],
   [`update_weights()`/`update_stats()`(from `DynamicPricer`/`UCBPricer`)],
   [使用刚获得的收入更新专家权重],
-  [8.收入分配],
-  [分配卖家收入(Shapley值)],
+  [8.分配卖家收入(Shapley值)],
   [`shapley_robust()`(from `RevenueDivider`)],
   [使用鲁棒Shapley值方法对卖家贡献进行归因和分配收益]
 )
   caption: main.py 各部分对应模块一览
 ]
 
-=== 4.1.2 #fakebold[rmse.py]
+=== 4.1.2 #fakebold[数据准备与模型准备：rmse.py]
 
 负责为市场提供数据生成、模型训练和预测增益计算、收益计算与分配等功能。
 
 ==== 4.1.2.1. generate_data(M=10, T=100) 模拟数据生成器
 
-输入参数：
+功能说明：
 
-  - M: 卖家数量（即特征维度数）
-
-  - T: 时间步长或数据样本数量
+模拟多个数据卖家提供特征数据，目标值由这些特征加权（线性模型）生成并加入噪声。
 
 #blockx[
-  流程：
-
-  + 生成特征矩阵 X ∈ ℝ^(M×T)，每一行是一个卖家的数据；
-
-  + 生成一个长度为 M 的真实权重向量 true_weights；
-
-  + 用线性组合 Y = true_weights · X + 噪声 生成目标变量；
-
-  + 噪声项服从 𝒩(0, 0.5)，用于模拟预测误差。
+  核心算法：
+  ```perl
+  for each seller i in M:
+      generate feature vector X[i] of length T
+  generate true weights w_true of length M
+  Y = dot(w_true, X) + gaussian_noise
+  return X, Y
+  ```
 ]
-
-输出：
-
-  - X: 所有卖家的特征数据（二维数组）
-
-  - Y: 合成后的目标变量（用于模拟训练/评价）
 
 ==== 4.1.2.2. ml_model = LinearRegression()
 
-作用：
+功能说明：
 
-用来拟合从 X 到 Y 的预测模型，用于模拟市场在获取数据后能提升预测能力的场景。
-
-#tip[该模型在其他文件中会用于计算“某个价格下，市场购买某些数据后的预测能力”，进而用于估算“收益”或“增益”。]
-
-==== 4.1.2.3. gain_function_rmse(y_true, y_pred)
-市场中用于衡量预测效果的 “数据增益函数”，用于反映模型训练后的效果是否更优。
+使用线性回归模型来学习卖家提供数据与目标值 Y 的关系。
 
 #blockx[
-  原理：
-
-  计算 `RMSE(y_true, y_pred)`；
-
-  归一化为 `Normalized RMSE = RMSE` / `std(y_true)`；
-
-  增益函数定义为 `Gain = max(0, 1 - Normalized RMSE)`，取值 ∈ [0, 1]。
+  核心算法：
+  ```perl
+  initialize ml_model as LinearRegression
+  ```
 ]
 
-意义：
-当模型预测效果越好，RMSE 越小，增益越大；
-增益越高 → 数据越有价值 → 收益越大。
+==== 4.1.2.3. gain_function_rmse(y_true, y_pred)
+功能说明：
 
-=== 4.1.3 #fakebold[HonestAuction.py]
+评估模型预测质量，返回一个增益值（越接近 1 表示模型越好）。
+
+#blockx[
+  核心算法：
+  ```perl
+  rmse = sqrt(mean_squared_error(y_true, y_pred))
+  y_std = std(y_true)
+  if y_std == 0:
+      return 1.0
+  normalized_rmse = rmse / y_std
+  gain = max(0, 1 - normalized_rmse)
+  return gain
+  ```
+]
+
+=== 4.1.3 #fakebold[诚实的机器学习模型拍卖：HonestAuction.py]
 
 实现了论文中的诚实拍卖机制，包括分配函数 (AF\*) 和收益函数 (RF\*)。
 
 ==== 4.1.3.1. 分配函数(\_allocation_function)
 
-功能：根据买家的出价 b_n 与市场定价 p_n 的差值，决定是否对数据加入噪声，从而“降级”数据质量。
+功能说明：根据买家的出价 b_n 与市场定价 p_n 的差值，决定是否对数据加入噪声，从而“降级”数据质量。
 
 机制来源：论文 Example 4.1 的 AF\* 实现。
 
 #blockx[
-加噪逻辑：
-
-- 如果 b_n >= p_n，买家可获得完整原始数据；
-
-- 如果 b_n < p_n，对数据加上 ~𝒩(0, σ²) 噪声，其中：
-
-```scss
-σ ∝ (p_n - b_n) * noise_std
-```
-即出价越低，数据越差，这是激励买家诚实出价的关键机制。
+  核心算法：
+  ```perl
+  if bid >= price: return X else: return X + noise(price - bid)
+  ```
 ]
+
 ==== 4.1.3.2. 预测增益函数(get_prediction_gain)
-功能：训练模型并计算预测结果与真实结果之间的 预测增益 G。
+
+功能说明：训练模型并计算预测结果与真实结果之间的 预测增益 G。
 
 #blockx[
-流程：
-
-用 `_allocation_function` 得降级版 X_tilde；
-
-将 X_tilde.T 和 Y 喂给 `ml_model`(遵循 scikit-learn API，如 LinearRegression)；
-
-用 `gain_function(y_true, y_pred)` 得增益指标(如 1 - RMSE)。
+核心算法：
+  ```perl
+  X_tilde = AF*(X, p, b) → model.fit → gain = G(y_true, y_pred)
+  ```
 ]
-
 ==== 4.1.3.3. 收益函数(calculate_revenue)
 
-核心算法：Myerson 支付规则
+功能说明：按 Myerson 支付规则，积分求信息租金，再计算收益
+
+#blockx[核心算法：Myerson 支付规则
 
 $ r_n = b_n \u{00B7} G(b_n) - \u{222B}^(b_n)_0 G(z) d z $
 
@@ -174,7 +157,7 @@ $ r_n = b_n \u{00B7} G(b_n) - \u{222B}^(b_n)_0 G(z) d z $
 
 - 第二项 $\u{222B}^(b_n)_0 G(z) d z$：信息租金，确保机制诚实激励；
 
-两者相减就是市场应收费用。
+两者相减就是市场应收费用。]
 
 数值实现方法：
 
@@ -194,21 +177,21 @@ integral = simpson(y_vals, z_vals)
 
 在数据市场中，根据拍卖反馈不断调整对价格的“信心”，从而自动寻找最优价格点。
 
-==== 4.1.4.1 核心算法：MWU（Multiplicative Weights Update）：
+==== 4.1.4.1 核心算法：MWU(Multiplicative Weights Update)：
 
 算法步骤如下：
 
-+ 将价格空间 [min_price, max_price] 离散为 num_experts 个价格（每个价格对应一个“专家”）；
++ 将价格空间 [min_price, max_price] 离散为 num_experts 个价格(每个价格对应一个“专家”)；
 
 + 初始时，每个专家权重设为 1；
 
 + 在每一轮交易中：
 
-  - 根据专家权重的归一化分布，随机抽取一个价格 p_n（相当于让一个专家出主意）；
+  - 根据专家权重的归一化分布，随机抽取一个价格 p_n(相当于让一个专家出主意)；
 
-  - 得到市场反馈（通过 auction_mechanism 得到的收益）；
+  - 得到市场反馈(通过 auction_mechanism 得到的收益)；
 
-  - 所有专家根据反馈更新权重（收益越好，权重涨得越多）；
+  - 所有专家根据反馈更新权重(收益越好，权重涨得越多)；
 
 #fakebold[更新公式：]
 
@@ -220,12 +203,184 @@ $ w_i^(n+1) \u{2261} w_i \u{00B7} (1+\u{03B4} \u{00B7} hat(g_i)) $
 
 实现了一个 基于 Shapley 值的收益分配系统，用于衡量和分配多个“卖家”或“特征提供者”在一个预测模型中所做出的边际贡献。
 
+==== 4.1.5.1. `shapley_approx` — 近似 Shapley 值
 
+功能说明：
+
+使用 K 次随机排列，近似计算每个卖家对预测任务的 Shapley 边际贡献。
+
+#blockx[
+核心算法
+```perl
+函数 shapley_approx(X, Y, K):
+    初始化每个卖家的 shapley 值为 0
+    对于 k in 1 到 K:
+        生成一个随机排列 perm
+        初始化 gain_predecessors = 0
+        对于 perm 中的每个卖家 i:
+            gain_current = get_gain_for_subset(前 i 个 + 当前卖家)
+            marginal = gain_current - gain_predecessors
+            将 marginal 加入当前卖家的 shapley 值
+            gain_predecessors = gain_current
+    返回 shapley 值的平均
+```
+]
+==== 4.1.5.2. `shapley_robust` — 鲁棒 Shapley 值
+
+功能说明：
+
+使用 K 次随机排列，近似计算每个卖家对预测任务的 Shapley 边际贡献。
+
+#blockx[
+核心算法
+```perl
+函数 shapley_robust(X, Y, K, λ):
+    approx_shapley = shapley_approx(X, Y, K)
+    计算 X 中每个卖家特征的 cosine 相似度矩阵 S
+    对于每个卖家 i:
+        total_sim = sum(S[i]) - 1
+        penalty = exp(-λ * total_sim)
+        robust_shapley[i] = approx_shapley[i] * penalty
+    返回 robust_shapley
+```
+]
+ 
 == 4.2 #fakebold[进阶功能]
 
 === 4.2.1 #fakebold[UCBPricer.py]
 
+实现了更多样的定价机制： UCB(Upper Confidence Bound)定价策略。
+
+==== 4.2.1.1.核心算法
+#figure[
+  #image("images/UCB_theory.png")
+  caption: UCB 定价策略的代码参考了这个课内slide
+  ]
+
+choose_price: 基于UCB算法选择一个当前最优价格
+
+#blockx[
+  UCB 核心算法：
+  ```python
+  average_reward + sqrt((c * log(total_rounds)) / count)
+  ```
+]
+
+update_stats：某轮价格尝试后，用实际收益 reward 更新该价格（专家）的平均收益。
+
+#blockx[
+  核心算法：
+  ```python
+  counts[i] += 1
+  values[i] = ((counts[i] - 1)/counts[i]) * old_value + (1/counts[i]) * reward
+  ```
+]
+==== 4.2.1.2.对比UCB定价 与 Dynamic定价(基于ML回归预测) 
+#table(
+  columns: 3,
+  [对比维度],
+  [UCB 定价机制],
+  [Dynamic 定价机制(ML 回归)],
+  [核心原理],
+  [多臂老虎机 + 置信上界],
+  [机器学习模型预测最优价格/收益],
+  [是否依赖标签],
+  [不依赖精确标签，基于经验更新收益估计],
+  [需要监督数据(历史价格 → 收益)],
+  [探索能力],
+  [强(自动探索未尝试价格)],
+  [弱(依赖已有训练数据)],
+  [适用场景],
+  [- 在线广告投放价格
+- 即时拍卖价格选择],
+  [- 产品销售预测定价
+- 卖家特征驱动的市场机制
+],
+  [响应速度],
+  [初期慢，长期收敛],
+  [初期快，易过拟合或失效于新环境]
+)
+
 === 4.2.2 #fakebold[Security.py]
+
+==== 4.2.2.1. 总流程
+#figure[
+  #image("images/flowchart.png")
+  caption: 安全模式+main综合后 的工作流程，出于工作量考虑只做了一种定价策略的实现
+]
+#table(
+  columns:3,
+
+  [步骤],
+  [对应模块],
+  [功能简述],
+  [1.初始化市场],
+  [`Marketplace` (market_mechanisms.py)],
+  [提供市场整体逻辑，包括注册验证服务、VC验证等],
+  [2&3.创建卖家对象],
+  [`VerifiableSeller` (market_participants.py)  `VerifiableSeller. set_data()`],
+  [卖家类，具备：生成数据、提交注册数据包(含签名+ZKP)的能力,设置好数据],
+  [4.生成注册包并提交],
+  [`VerifiableSeller. get_data_ registration_package()`],
+  [提供数据包(含数据、签名、ZKP)提交市场],
+  [5.数据注册并验证],
+  [`Marketplace. verification_service. register_data()`],
+  [使用伪造检测+重复检测机制，确保数据来源独立真实],
+  [6\~8.创建定价器、竞拍器、收入分配器],
+  [同4.1],
+  [同4.1],
+  [9.创建买家对象],
+  [`BuyerWithCredentials` (market_participants.py)],
+  [买家类，支持 VC 认证管理和出价行为],
+  [10.添加买家 VC],
+  [`BuyerWithCredentials. add_credential()`],
+  [添加买家凭证(如医疗研究员资格)],
+  [11.验证买家资格],
+  [`Marketplace. verify_buyer_credentials()`],
+  [检查某买家是否持有合法 VC],
+  [12\~23.正常进行后续拍卖流程],
+  [同4.1],
+  [同4.1]
+)
+
+==== 4.2.2.2.ZKP验证卖家数据所有权
+
+主要功能：
+`MarketVerificationService`	验证并注册卖家的数据包，防止数据抄袭，使用零知识证明（ZKP）确认所有权
+
+#blockx[
+  核心算法：
+  ZKP验证 `MarketVerificationService.register_data()`
+  
+  ```
+  If data_hash in registered_data:
+    Reject
+  If not verify_zkp(public_key, data_hash, zkp):
+      Reject
+  Add data_hash to registered_data
+  Accept
+  ```
+
+  流程：
+  - hashlib.sha256(...)	计算数据的不可逆摘要，作为数据唯一表示
+  - sign(...)	使用私钥对哈希签名（如使用ECDSA），表明“我拥有此数据”
+  - generate_zkp_of_signature(...)	构造一个零知识证明，证明签名是由拥有该公钥对应私钥者生成的，而不暴露私钥
+]
+==== 4.2.2.3. VC验证买家身份
+
+主要功能：
+- `BuyerWithCredentials.wallet`买家存储从平台获取的访问凭证 VC
+- `BuyerWithCredentials.present_credential()`向市场出示某一类凭证，供验证逻辑使用
+
+
+#blockx[
+核心算法：
+- `wallet`：一个字典，存储类型化的凭证（如 "Access", "Reputation", "Score"）
+
+- `add_credential(...)`：添加凭证，例如来自市场管理员
+
+- `present_credential(...)`：买家在交易时出示凭证
+]
 
 = 5 #fakebold[实验结果与分析]
 
@@ -236,13 +391,21 @@ $ w_i^(n+1) \u{2261} w_i \u{00B7} (1+\u{03B4} \u{00B7} hat(g_i)) $
 
 按照图示步骤模拟了机器学习市场模型交易完整流程。
 
+其中，诚实的机器学习模型拍卖（Honest Auction），MWU 算法动态定价（Multiplicative Weights Update） 和 收益分配（Shapley值） 均在流程中有实现，已在上一节中分别给出核心算法；对于用户数据的模拟则有所简化。
+
 == 5.2 #fakebold[更多的定价算法]
 == 5.2.1 #fakebold[实验结果]
 #image("images/UCB.png")
 == 5.2.2 #fakebold[实验分析]
+按照图示步骤模拟了机器学习市场模型交易完整流程。
+
+将定价算法从DynamicPricer改为UCBPricer，使用UCB定价策略替代了MWU定价策略。在数据生成和定价环节均有变化，可以看到程序成功跑通。
 
 == 5.3 #fakebold[隐私计算]
 == 5.3.1 #fakebold[实验结果]
 #image("images/ZKP.png")
 #image("images/ZKP2.png")
 == 5.3.2 #fakebold[实验分析]
+按照图示步骤模拟了带上隐私计算功能的机器学习市场模型交易完整流程。
+
+其中，生成公钥和ZKP的过程均在输出中有体现，对于VC过程，Alice的数据模拟了VC通过并正常进行拍卖定价和收益分配的全流程，而Bob的数据则模拟了VC验证失败的情况，可以看到拍卖正常中止。
