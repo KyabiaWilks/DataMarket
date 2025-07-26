@@ -27,8 +27,9 @@
 
 = 2 #fakebold[文章的整体思路]
 
-文章采用了一个#fakebold[三步骤的系统性方法]来构建数据市场：
-
+#summary[
+  文章采用了一个#fakebold[三步骤的系统性方法]来构建数据市场：
+]
 == 2.1 #fakebold[第一步：诚实机器学习模型拍卖机制]
 
 基于#fakebold[Myerson拍卖理论]设计了一个激励相容的拍卖机制：
@@ -62,6 +63,7 @@
 
 #fakebold[定理陈述]：对于分配函数 AF*，当且仅当假设1成立时，性质3.1（真实性）可以实现，此时 RF* 保证真实性。
 
+#proof[
 #fakebold[证明思路]：
 这是Myerson支付函数的经典结果。证明分为两个方向：
 
@@ -69,18 +71,19 @@
 2. #fakebold[反向]：如果机制是真实的，则增加的分配不能降低准确性
 
 关键在于买家效用函数的设计，即买家的效用仅来自于获得的估计质量 $Y_n$，而非特定的数据集分配。
-
+]
 == 3.2 #fakebold[定理5.2：收益最大化]
 
 #fakebold[定理陈述]：设假设1、3、4成立，设 $p_(n,n in [N])$ 为算法1的输出。通过选择算法超参数 $epsilon = (L sqrt(N))^(-1)$，$delta = sqrt(log(abs(cal(B)_(upright("net"))(epsilon)))/N)$，总平均后悔有界为：
 
 $frac(1, N) bb(E)[cal(R)(N)] lt.eq C cal(B)_(upright("max")) sqrt(frac(log(cal(B)_(upright("max")) L sqrt(N)), N)) = O(sqrt(frac(log(N), N)))$
 
+#proof[
 #fakebold[证明思路]：
 1. 首先证明固定价格的后悔界限
 2. 利用MWU算法的归纳关系式，建立权重更新的递推关系
 3. 通过对数不等式和泰勒展开，得到期望收益的渐近界限
-
+]
 该定理说明算法1是零后悔算法，收益界限与特征数量M无关。
 
 == 3.3 #fakebold[定理5.3：收益分配中的公平性]
@@ -89,24 +92,25 @@ $frac(1, N) bb(E)[cal(R)(N)] lt.eq C cal(B)_(upright("max")) sqrt(frac(log(cal(B
 
 $||psi_(n,"shapley") - hat(psi)_n||_("infinity") < epsilon$
 
-
+#proof[
 #fakebold[证明思路]：
 这是对Shapley值的 $epsilon$-近似。证明基于：
 1. 将Shapley值表示为期望形式
 2. 利用有界支撑和独立性，应用Hoeffding不等式
 3. 通过联合界限控制所有坐标的误差
-
+]
 该定理给出了计算Shapley值的有限样本保证，使得实际应用中可以通过有限采样获得理论保证的近似解。
 
 == 3.4 #fakebold[定理5.4：抗复制鲁棒性]
 
 #fakebold[定理陈述]：设假设2成立。对于算法3，选择超参数 $K >= (M log(2 slash delta)) slash (2(epsilon slash 3)^2)$，$lambda = log(2)$，其中 $delta, epsilon > 0$，则以概率 $1 - delta$，算法3的输出 $psi_n$ 是"$epsilon$-抗复制鲁棒"的，即满足性质3.4（抗复制鲁棒性）。
 
+#proof[
 #fakebold[证明思路]：
 1. 构造包含复制特征的增广集合 $S^+$
 2. 证明指数惩罚函数 $exp(-lambda sum_(j in [M] \\ {m}) cal("SM")(X_m, X_j))$ 的鲁棒性条件
 3. 利用相似性度量的性质，证明复制特征会被指数加权显著降权
-
+]
 该定理确保了即使存在数据复制攻击，收益分配仍然保持公平性。
 
 = 4 #fakebold[实现的核心算法介绍]
@@ -115,7 +119,8 @@ $||psi_(n,"shapley") - hat(psi)_n||_("infinity") < epsilon$
 
 === 4.1.1 #fakebold[main.py]
 
-总体目标：#fakebold[模拟一次完整的数据市场交易流程]，包括：
+#summary[
+  总体目标：#fakebold[模拟一次完整的数据市场交易流程]，包括：
 + 市场定价(动态或UCB学习)
 + 买家诚实出价
 + 市场根据出价决定是否降噪并训练模型
@@ -123,6 +128,7 @@ $||psi_(n,"shapley") - hat(psi)_n||_("infinity") < epsilon$
 + 市场向买家收取费用(基于Myerson公式)
 + 市场更新价格模型
 + 使用Shapley值分配卖家收入(带鲁棒性)
+]
 #figure[
 #table(
   columns: 3,
@@ -155,9 +161,9 @@ $||psi_(n,"shapley") - hat(psi)_n||_("infinity") < epsilon$
 ]
 
 === 4.1.2 #fakebold[数据准备与模型准备：rmse.py]
-
+#summary[
 负责为市场提供数据生成、模型训练和预测增益计算、收益计算与分配等功能。
-
+]
 ==== 4.1.2.1. generate_data(M=10, T=100) 模拟数据生成器
 
 功能说明：
@@ -207,9 +213,9 @@ $||psi_(n,"shapley") - hat(psi)_n||_("infinity") < epsilon$
 ]
 
 === 4.1.3 #fakebold[诚实的机器学习模型拍卖：HonestAuction.py]
-
+#summary[
 实现了论文中的诚实拍卖机制，包括分配函数 (AF\*) 和收益函数 (RF\*)。
-
+]
 ==== 4.1.3.1. 分配函数(\_allocation_function)
 
 功能说明：根据买家的出价 b_n 与市场定价 p_n 的差值，决定是否对数据加入噪声，从而“降级”数据质量。
@@ -262,11 +268,11 @@ y_vals = [G(z) for z in z_vals]
 integral = simpson(y_vals, z_vals)
 ```
 === 4.1.4 #fakebold[DynamicPricer.py]
-
+#summary[
 该程序的目的是实现动态定价策略：
 
 在数据市场中，根据拍卖反馈不断调整对价格的“信心”，从而自动寻找最优价格点。
-
+]
 ==== 4.1.4.1 核心算法：MWU(Multiplicative Weights Update)：
 
 算法步骤如下：
@@ -338,9 +344,9 @@ $ w_i^(n+1) \u{2261} w_i \u{00B7} (1+\u{03B4} \u{00B7} hat(g_i)) $
 == 4.2 #fakebold[进阶功能]
 
 === 4.2.1 #fakebold[UCBPricer.py]
-
+#summary[
 实现了更多样的定价机制： UCB(Upper Confidence Bound)定价策略。
-
+]
 ==== 4.2.1.1.核心算法
 #figure[
   #image("images/UCB_theory.png")
@@ -504,3 +510,9 @@ $ w_i^(n+1) \u{2261} w_i \u{00B7} (1+\u{03B4} \u{00B7} hat(g_i)) $
 按照图示步骤模拟了带上隐私计算功能的机器学习市场模型交易完整流程。
 
 其中，生成公钥和ZKP的过程均在输出中有体现，对于VC过程，Alice的数据模拟了VC通过并正常进行拍卖定价和收益分配的全流程，而Bob的数据则模拟了VC验证失败的情况，可以看到拍卖正常中止。
+#warning[
+  当然可以注意到，程序运行过程中有一个未解决的 integral_part 问题。
+  
+  涉及的代码是基础流程代码，并非隐私计算相关代码。
+  此处的问题和基础版本 4.1.3.3.提到的报错相似，解决方法也相似，同样出于工作量原因考虑没有进行修复。
+]
