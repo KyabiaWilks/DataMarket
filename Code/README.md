@@ -6,17 +6,22 @@ pip install -r requirements.txt
 
 python main.py
 
+------------------------------------
 隐私计算部分：
 
 cd Security
 
 python smain.py
 
-剩下的写报告的时候再好好写罢
+-------------------------------------
 
 前端部分：
 
 cd ml-model-market
+
+npm install @chakra-ui/
+react@2.8.2 @emotion/react@11 @emotion/styled@11 framer-moti
+on@6
 
 node server.js
 

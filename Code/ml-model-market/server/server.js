@@ -4,6 +4,13 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
+import { execFile } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// 当前模块的 __dirname 模拟
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3001;
@@ -50,24 +57,25 @@ app.post('/api/logout', (req, res) => {
     res.json({ message: '登出成功' });
 });
 
-// 模拟拍卖流程接口
 app.post('/api/run-auction', (req, res) => {
     const { modelId, bid, taskData } = req.body;
-    console.log(`收到拍卖请求: 模型ID=${modelId}, 出价=${bid}`);
+    const script = path.join(__dirname, 'run_auction.py');
 
-    // 模拟后端处理延迟
-    setTimeout(() => {
-        // 模拟论文复现程序的输出
-        const result = {
-            market_price_offered: (Math.random() * 200 + 150).toFixed(2), // 市场定价 p_n
-            your_bid: bid,
-            prediction_gain_achieved: (0.85 + Math.random() * 0.1).toFixed(4), // 预测增益 G
-            cost_to_you: (bid * 0.5 + Math.random() * 10).toFixed(2), // 最终费用 r_n
-            seller_payouts: [], // 示例：空数组或你可以填充模拟数据
-        };
-        res.json(result);
-    }, 2000);
+    execFile('python3', [script, bid, modelId, JSON.stringify(taskData)], (error, stdout, stderr) => {
+        if (error) {
+            console.error('运行 Python 出错:', error);
+            res.status(500).json({ error: '执行失败' });
+            return;
+        }
+        try {
+            const result = JSON.parse(stdout);
+            res.json(result);
+        } catch (e) {
+            res.status(500).json({ error: '解析 Python 输出失败', raw: stdout });
+        }
+    });
 });
+
 
 app.listen(PORT, () => {
     console.log(`模拟后端服务器运行在 http://localhost:${PORT}`);

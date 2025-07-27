@@ -21,8 +21,9 @@ const Dashboard = () => {
         </Text>
         <ul>
           <li><Text><b>市场 (Marketplace):</b> 浏览社区提供的、可用于您预测任务的各种模型和数据集。</Text></li>
-          <li><Text><b>我的模型 (My Models):</b> 作为数据提供方，注册并管理您的数据资产，并通过密码学方法验证其原创性。</Text></li>
           <li><Text><b>运行拍卖 (Run Auction):</b> 作为数据需求方，体验一次完整的、可视化的数据拍卖流程。</Text></li>
+          <li><Text><b>我的模型 (My Models):</b> 作为数据提供方，注册并管理您的数据资产，并通过密码学方法验证其原创性。</Text></li>
+          
         </ul>
       </VStack>
     </Box>

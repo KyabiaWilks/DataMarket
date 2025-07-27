@@ -5,9 +5,9 @@ import { MdDashboard, MdStore, MdAccountBalanceWallet, MdPlayCircleFilled } from
 
 const Sidebar = () => {
   const navItems = [
-    { label: '仪表盘', path: '/', icon: MdDashboard },
-    { label: '模型市场', path: '/market', icon: MdStore },
-    { label: '钱包', path: '/wallet', icon: MdAccountBalanceWallet },
+    { label: '首页', path: '/', icon: MdDashboard },
+    { label: '模型市场', path: '/marketplace', icon: MdStore },
+    { label: '运行拍卖', path: '/run-auction', icon: MdAccountBalanceWallet },
     { label: '我的模型', path: '/my-models', icon: MdPlayCircleFilled },
   ];
 

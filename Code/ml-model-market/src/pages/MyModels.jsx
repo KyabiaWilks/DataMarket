@@ -1,10 +1,37 @@
 // src/pages/MyModels.jsx
 import { useState } from 'react';
 import {
-  Box, Heading, Button, VStack, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Tag, useToast,
-  Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, useDisclosure, FormControl, FormLabel, Input,
-  Text, Flex, Icon
+  Box,
+  Heading,
+  Button,
+  VStack,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Tag,
+  useToast,
+  Text,
+  Flex,
+  Icon,
+  FormControl,
+  FormLabel,
+  Input,
 } from '@chakra-ui/react';
+
+import {
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
+} from '@chakra-ui/react';
+
 import { MdCloudUpload, MdCheckCircle, MdHourglassEmpty } from 'react-icons/md';
 
 const MyModels = () => {
@@ -12,6 +39,7 @@ const MyModels = () => {
     { id: 'seller-model-01', name: '我的客流量时间序列数据', status: '已验证', hash: 'a1b2c3d4e5f6' },
     { id: 'seller-model-02', name: '地区销售额数据集', status: '已验证', hash: 'f6g7h8i9j0k1' },
   ]);
+
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const [isUploading, setIsUploading] = useState(false);
@@ -22,18 +50,20 @@ const MyModels = () => {
       toast({ title: "请输入名称", status: "warning", duration: 3000 });
       return;
     }
+
     setIsUploading(true);
-    // 模拟ZKP验证过程
+
     setTimeout(() => {
       setIsUploading(false);
       onClose();
       const newId = `seller-model-0${myModels.length + 1}`;
       const newHash = Math.random().toString(16).substr(2, 12);
       setMyModels([
-       ...myModels,
+        ...myModels,
         { id: newId, name: newModelName, status: '验证中', hash: newHash }
       ]);
       setNewModelName('');
+
       toast({
         title: "模型注册成功",
         description: "您的数据已提交，正在进行密码学验证。",
@@ -41,10 +71,10 @@ const MyModels = () => {
         duration: 5000,
         isClosable: true,
       });
-      // 模拟验证完成
+
       setTimeout(() => {
         setMyModels(prevModels => prevModels.map(m =>
-          m.id === newId? {...m, status: '已验证' } : m
+          m.id === newId ? { ...m, status: '已验证' } : m
         ));
       }, 3000);
     }, 2000);
@@ -58,7 +88,9 @@ const MyModels = () => {
           注册新模型
         </Button>
       </Flex>
-      <TableContainer>
+
+      {/* 直接使用 Box 包裹表格 */}
+      <Box overflowX="auto">
         <Table variant='simple'>
           <Thead>
             <Tr>
@@ -72,8 +104,11 @@ const MyModels = () => {
               <Tr key={model.id}>
                 <Td>{model.name}</Td>
                 <Td>
-                  <Tag colorScheme={model.status === '已验证'? 'green' : 'yellow'}>
-                    <Icon as={model.status === '已验证'? MdCheckCircle : MdHourglassEmpty} mr={2} />
+                  <Tag colorScheme={model.status === '已验证' ? 'green' : 'yellow'}>
+                    <Icon
+                      as={model.status === '已验证' ? MdCheckCircle : MdHourglassEmpty}
+                      mr={2}
+                    />
                     {model.status}
                   </Tag>
                 </Td>
@@ -82,7 +117,7 @@ const MyModels = () => {
             ))}
           </Tbody>
         </Table>
-      </TableContainer>
+      </Box>
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
@@ -93,7 +128,11 @@ const MyModels = () => {
             <VStack spacing={4}>
               <FormControl isRequired>
                 <FormLabel>名称</FormLabel>
-                <Input placeholder="例如：我的店铺销售数据" value={newModelName} onChange={(e) => setNewModelName(e.target.value)} />
+                <Input
+                  placeholder="例如：我的店铺销售数据"
+                  value={newModelName}
+                  onChange={(e) => setNewModelName(e.target.value)}
+                />
               </FormControl>
               <FormControl isRequired>
                 <FormLabel>数据文件</FormLabel>
