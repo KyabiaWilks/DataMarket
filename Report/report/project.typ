@@ -478,10 +478,68 @@ $ w_i^(n+1) \u{2261} w_i \u{00B7} (1+\u{03B4} \u{00B7} hat(g_i)) $
 - `present_credential(...)`：买家在交易时出示凭证
 ]
 
-#tip[
+#hint[
   这段和论文的关系就比较小了，但是鉴于信安专业+课上还是提过一些隐私计算所以想到这个方向后还是毅然决然地做了。
 
-  这里本来想写得深入一点，还为此研究了一下Zokrates，但在编译zok文件的时候失败了，调了一天也没调出来，现在的版本大部分是引用各种库，其中一部分可以说引得我自己也不太了解，只能说更重要的是引入隐私计算这个步骤本身吧。]
+  在`cryptography_lib`的部分遇到了比较大的麻烦（也留下了比较大的坑）
+  
+  最后成功调用出简单的ZKP验证功能。在这里记录一下两次尝试：
+
+  - 尝试1：Zokrates编译zok文件（更接近生产环境）
+  
+    编译的时候由于环境原因一直报错：
+    ```
+    Compilation failed:
+
+    root.zok: --> 1:39
+      |
+    1 | def main(private field a, field b) -> field {␊
+      |                                       ^---
+      |
+      = expected ty_array
+    ```
+    尝试解决无果，重新配环境工作量过大，放弃。
+
+  - 尝试2：使用 zksk 库实现 ZKP 验证（建议的ZKP验证，实现成功）
+
+    此处遇到了大量环境配置问题，具体解决方案已写在Code/README.md 中。
+    完成环境配置后更新代码
+
+    具体实现方式以调库为主，详见代码：
+    ```python
+    def generate_zkp_of_signature(data_hash, signature, public_key):
+        """
+        使用 zksk 构造“知道签名者私钥”的零知识证明。
+        模拟离散对数知识证明：证明知道私钥 x，使得 pk = g^x
+        """
+        group = EcGroup()
+        order = group.order()
+        g = group.generator()
+        x_value = order.random()
+        h = g.pt_mul(x_value)
+        x = Secret()
+        stmt = DLRep(h, x * g)
+        proof = stmt.prove({x: x_value})
+
+        return {
+            "zkp_proof": proof,
+            "g": g.export(),
+            "h": h.export()
+        }
+
+    def verify_zkp(public_key, data_hash, zkp_dict):
+        """
+        验证零知识证明
+        """
+        group = EcGroup()
+        g = group.generator()
+        h = EcPt.from_binary(zkp_dict["h"], group)
+        x = Secret()
+        stmt = DLRep(h, x * g)
+        proof = zkp_dict["zkp_proof"]
+        return stmt.verify(proof)
+    ```
+    ]
 
 = 5 #fakebold[实验结果与分析]
 
@@ -504,8 +562,14 @@ $ w_i^(n+1) \u{2261} w_i \u{00B7} (1+\u{03B4} \u{00B7} hat(g_i)) $
 
 == 5.3 #fakebold[隐私计算]
 === 5.3.1 #fakebold[实验结果]
+未引入ZKP验证的版本
 #image("images/ZKP.png")
 #image("images/ZKP2.png")
+
+#attention[
+  此处的图片是引入ZKP验证的结果，时间问题来不及同步到前端了，仅在此处实现。
+]
+#image("images/ZKP3.png")
 === 5.3.2 #fakebold[实验分析]
 按照图示步骤模拟了带上隐私计算功能的机器学习市场模型交易完整流程。
 
@@ -516,3 +580,96 @@ $ w_i^(n+1) \u{2261} w_i \u{00B7} (1+\u{03B4} \u{00B7} hat(g_i)) $
   涉及的代码是基础流程代码，并非隐私计算相关代码。
   此处的问题和基础版本 4.1.3.3.提到的报错相似，解决方法也相似，同样出于工作量原因考虑没有进行修复。
 ]
+
+== 5.3 #fakebold[前端展示]
+#blockx[
+#table(
+  columns: 3,
+  align: left,
+  stroke: none,
+  [类别],
+  [技术/库],
+  [作用说明],
+
+  [核心框架与构建],
+  [React],
+  [构建用户界面，采用组件化开发],
+  [],
+  [Vite],
+  [提供快速开发和构建（含热更新）],
+
+  [UI 组件与样式],
+  [Chakra UI],
+  [构建统一风格的 UI 组件],
+  [],
+  [Emotion],
+  [提供 CSS-in-JS 样式支持],
+  [],
+  [Framer Motion],
+  [实现组件动画和过渡效果],
+  [],
+  [React Icons],
+  [集成常用图标库],
+
+  [路由管理],
+  [React Router],
+  [控制页面跳转和访问权限],
+
+  [状态管理],
+  [Context API],
+  [管理全局状态（如用户认证）],
+  [],
+  [React Hooks],
+  [管理组件状态和副作用逻辑],
+
+  [API 通信],
+  [Axios],
+  [向后端发送 HTTP 请求],
+
+  [用户认证],
+  [JWT],
+  [实现登录认证和身份校验],
+  [],
+  [Cookie (HttpOnly)],
+  [存储 Token，提高安全性],
+  [],
+  [jwt-decode],
+  [解码 JWT，提取用户信息],
+
+  [开发环境],
+  [Node.js & npm],
+  [支持 Vite 和后端运行],
+
+  [模拟后端],
+  [Express.js],
+  [提供 mock API 接口],
+  [],
+  [CORS 中间件],
+  [允许前后端跨域通信],
+)
+]
+
+此处针对基础流程和密码学计算分别做了两个API接口连接到后端。
+
+工作量问题导致没有完成的内容：切换算法的接口没有做、数据库没有连接。
+
+主要功能页面：首页、登录（包含JWT和cookies鉴权，路由检测到未登录会自动跳转）、模拟拍卖页面（核心功能，接入本地模拟程序api）、模型市场界面（除了router没做很多内容，只是生产环境下的前端应该会有这样一个页面）、default页面（404页面）
+#columns[
+  #image("images/front3.png",width: 100%)
+  #image("images/front7.png",width: 100%)
+  #image("images/front4.png",width: 100%)
+  #image("images/front8.png",width: 100%)
+]
+#figure[
+  #image("images/front2.png",width: 100%)
+  caption: 前端展示的核心页面
+]
+
+
+密码学功能展示：上传模型并进行ZKP验证，接入ZKP验证的后端API，前端展示了生成的公钥和ZKP。
+#columns[
+  #image("images/front5.png",width: 100%)
+  #image("images/front1.png",width: 100%)
+  #image("images/front9.png",width: 100%)
+]
+
