@@ -44,40 +44,65 @@ const MyModels = () => {
   const toast = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [newModelName, setNewModelName] = useState('');
-
-  const handleRegisterModel = () => {
-    if (!newModelName) {
-      toast({ title: "请输入名称", status: "warning", duration: 3000 });
+  const [file, setFile] = useState(null);
+  
+  const handleRegisterModel = async () => {
+    if (!newModelName || !file) {
+      toast({ title: "请填写完整信息", status: "warning", duration: 3000 });
       return;
     }
 
     setIsUploading(true);
+    const formData = new FormData();
+    const newId = `seller-model-0${myModels.length + 1}`;
 
-    setTimeout(() => {
-      setIsUploading(false);
-      onClose();
-      const newId = `seller-model-0${myModels.length + 1}`;
-      const newHash = Math.random().toString(16).substr(2, 12);
-      setMyModels([
-        ...myModels,
-        { id: newId, name: newModelName, status: '验证中', hash: newHash }
-      ]);
-      setNewModelName('');
+    formData.append('modelId', newId);
+    formData.append('modelName', newModelName);
+    formData.append('bid', 200); // 可拓展为用户输入
+    formData.append('file', file);
 
-      toast({
-        title: "模型注册成功",
-        description: "您的数据已提交，正在进行密码学验证。",
-        status: "success",
-        duration: 5000,
-        isClosable: true,
+    try {
+      const response = await fetch('http://localhost:3001/api/verify-model', {
+        method: 'POST',
+        body: formData
       });
 
-      setTimeout(() => {
-        setMyModels(prevModels => prevModels.map(m =>
-          m.id === newId ? { ...m, status: '已验证' } : m
-        ));
-      }, 3000);
-    }, 2000);
+      if (!response.ok) throw new Error('验证失败');
+      const result = await response.json();
+
+      setMyModels([
+        ...myModels,
+        {
+          id: newId,
+          name: newModelName,
+          status: '已验证',
+          hash: result.data_hash || '未知',
+          gain: result.prediction_gain_achieved,
+          price: result.market_price_offered
+        }
+      ]);
+
+      toast({
+        title: "验证成功",
+        description: `ZKP 验证成功，模型已登记。预测增益为 ${result.prediction_gain_achieved}`,
+        status: "success",
+        duration: 5000
+      });
+
+      setNewModelName('');
+      setFile(null);
+      onClose();
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "验证失败",
+        description: "服务器返回错误，请检查数据格式或稍后重试。",
+        status: "error",
+        duration: 5000
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -136,7 +161,7 @@ const MyModels = () => {
               </FormControl>
               <FormControl isRequired>
                 <FormLabel>数据文件</FormLabel>
-                <Input type="file" p={1} />
+                <Input type="file" p={1} onChange={(e) => setFile(e.target.files[0])} />
                 <Text fontSize="sm" color="gray.500" mt={1}>
                   上传后，系统将生成数据哈希并创建零知识证明以验证原创性。
                 </Text>

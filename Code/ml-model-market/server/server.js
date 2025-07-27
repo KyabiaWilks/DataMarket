@@ -7,6 +7,7 @@ import bodyParser from 'body-parser';
 import { execFile } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import multer from 'multer';
 
 // 当前模块的 __dirname 模拟
 const __filename = fileURLToPath(import.meta.url);
@@ -22,6 +23,17 @@ app.use(cookieParser());
 
 // 模拟用户数据库
 const users = [{ username: 'testuser', password: 'password123' }];
+// 设置上传目录
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'uploads'));  // 确保 uploads 目录存在
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname); // 避免重名
+  }
+});
+
+const upload = multer({ storage });
 
 // 登录接口
 app.post('/api/login', (req, res) => {
@@ -79,4 +91,33 @@ app.post('/api/run-auction', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`模拟后端服务器运行在 http://localhost:${PORT}`);
+});
+
+app.post('/api/verify-model', upload.single('file'), (req, res) => {
+  const { modelId } = req.body;
+  const filePath = req.file.path;
+
+  execFile('python3', [
+    path.join(__dirname, 'verify_model.py'),
+    modelId,
+    filePath
+  ], (error, stdout) => {
+    if (error) {
+        console.error(error);
+        console.error('执行出错:', error);         // ← 加这一行
+        console.error('标准错误输出:', stderr);   // ← 再加这一行
+        return res.status(500).json({ error: '执行验证失败' });
+    }
+    try {
+        const jsonStart = stdout.indexOf('{');
+        const jsonEnd = stdout.lastIndexOf('}');
+        const cleanJson = stdout.slice(jsonStart, jsonEnd + 1);
+        const result = JSON.parse(cleanJson);
+        res.json(result);
+    } catch (e) {
+        console.error('解析失败:', stdout);
+        res.status(500).json({ error: 'JSON解析失败', raw: stdout });
+    }
+
+  });
 });
