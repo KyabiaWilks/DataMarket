@@ -3,8 +3,9 @@ from scipy.integrate import quad
 from sklearn.metrics.pairwise import cosine_similarity
 from cryptography_lib import verify_zkp
 
-# --- New Security-Focused Mechanisms ---
-
+# ============================================================
+# 新增的安全机制，确保数据的原创性和卖家的所有权
+# ============================================================
 
 class MarketVerificationService:
     """

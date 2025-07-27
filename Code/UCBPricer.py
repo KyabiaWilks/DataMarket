@@ -5,17 +5,17 @@ from shared import ml_model, price_range
 
 class UCBPricer:
     """
-    实现了基于置信上界 (UCB) 的动态定价机制。
+    实现了基于置信上界 (UCB) 的动态定价机制
     """
 
     def __init__(self, price_range, num_experts, confidence_c=2.0):
         """
-        初始化 UCB 定价器。
+        初始化 UCB 定价器
 
         Args:
-            price_range (tuple): 价格的范围 (min_price, max_price)。
-            num_experts (int): 专家的数量，即离散化价格点的数量。
-            confidence_c (float): 控制探索程度的置信度参数。
+            price_range (tuple): 价格的范围 (min_price, max_price)
+            num_experts (int): 专家的数量，即离散化价格点的数量
+            confidence_c (float): 控制探索程度的置信度参数
         """
         self.experts = np.linspace(price_range[0], price_range[1], num_experts)
         self.num_experts = num_experts
@@ -28,11 +28,11 @@ class UCBPricer:
 
     def choose_price(self):
         """
-        根据 UCB 规则选择一个价格。
+        根据 UCB 规则选择一个价格
 
         Returns:
-            float: 选定的市场价格 p_n。
-            int: 选定专家的索引。
+            float: 选定的市场价格 p_n
+            int: 选定专家的索引
         """
         self.total_rounds += 1
 
@@ -58,11 +58,11 @@ class UCBPricer:
 
     def update_stats(self, chosen_expert_index, reward):
         """
-        在一次交易后，更新被选中专家的统计数据。
+        在一次交易后，更新被选中专家的统计数据
 
         Args:
-            chosen_expert_index (int): 被选中专家的索引。
-            reward (float): 从该价格获得的实际收益。
+            chosen_expert_index (int): 被选中专家的索引
+            reward (float): 从该价格获得的实际收益
         """
         # 更新被选中价格的计数
         self.counts[chosen_expert_index] += 1
