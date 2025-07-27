@@ -22,7 +22,7 @@ ml_model = LinearRegression()
 # 增益函数 G = 1 - Normalized RMSE
 def gain_function_rmse(y_true, y_pred):
     """
-    计算 1 - Normalized RMSE 作为增益函数。
+    计算 1 - Normalized RMSE 作为增益函数
     """
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
     # 归一化RMSE，使其值在 [0, inf) 之间，通常接近

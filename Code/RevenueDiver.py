@@ -5,23 +5,23 @@ from shared import ml_model, price_range
 
 class RevenueDivider:
     """
-    实现了基于Shapley值的收益分配机制，包括近似算法和对复制鲁棒的算法。
+    实现了基于Shapley值的收益分配机制，包括近似算法和对复制鲁棒的算法
     """
 
     def __init__(self, ml_model, gain_function):
         """
-        初始化收益分配器。
+        初始化收益分配器
 
         Args:
-            ml_model: 一个遵循 scikit-learn API 的机器学习模型实例。
-            gain_function: 一个函数，输入 (y_true, y_pred)，输出预测增益 G。
+            ml_model: 一个遵循 scikit-learn API 的机器学习模型实例
+            gain_function: 一个函数，输入 (y_true, y_pred)，输出预测增益 G
         """
         self.ml_model = ml_model
         self.gain_function = gain_function
 
     def _get_gain_for_subset(self, X_subset, Y):
         """
-        辅助函数：为给定的特征子集计算预测增益。
+        辅助函数：为给定的特征子集计算预测增益
         """
         if X_subset.shape == 0:  # 如果子集为空
             return 0.0
@@ -35,15 +35,15 @@ class RevenueDivider:
 
     def shapley_approx(self, X, Y, K):
         """
-        近似Shapley值 (Algorithm 2: SHAPLEY-APPROX)。
+        近似Shapley值 (Algorithm 2: SHAPLEY-APPROX)
 
         Args:
-            X (np.array): 所有卖家的特征数据 (M, T)。
-            Y (np.array): 目标预测任务数据 (T,)。
-            K (int): 蒙特卡洛采样的迭代次数。
+            X (np.array): 所有卖家的特征数据 (M, T)
+            Y (np.array): 目标预测任务数据 (T,)
+            K (int): 蒙特卡洛采样的迭代次数
 
         Returns:
-            np.array: 每个卖家的近似Shapley值 (M,)。
+            np.array: 每个卖家的近似Shapley值 (M,)
         """
         M, T = X.shape
         shapley_values = np.zeros(M)
@@ -81,16 +81,16 @@ class RevenueDivider:
 
     def shapley_robust(self, X, Y, K, lambda_param=np.log(2)):
         """
-        对复制鲁棒的Shapley值分配 (Algorithm 3: SHAPLEY-ROBUST)。
+        对复制鲁棒的Shapley值分配 (Algorithm 3: SHAPLEY-ROBUST)
 
         Args:
-            X (np.array): 所有卖家的特征数据 (M, T)。
-            Y (np.array): 目标预测任务数据 (T,)。
-            K (int): 蒙特卡洛采样的迭代次数。
-            lambda_param (float): 指数惩罚项的强度参数。
+            X (np.array): 所有卖家的特征数据 (M, T)
+            Y (np.array): 目标预测任务数据 (T,)
+            K (int): 蒙特卡洛采样的迭代次数
+            lambda_param (float): 指数惩罚项的强度参数
 
         Returns:
-            np.array: 每个卖家的鲁棒Shapley值 (M,)。
+            np.array: 每个卖家的鲁棒Shapley值 (M,)
         """
         # 1. 计算近似Shapley值
         approx_shapley = self.shapley_approx(X, Y, K)
