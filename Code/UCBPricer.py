@@ -2,10 +2,12 @@ import numpy as np
 import math
 from shared import ml_model, price_range
 
+
 class UCBPricer:
     """
     实现了基于置信上界 (UCB) 的动态定价机制。
     """
+
     def __init__(self, price_range, num_experts, confidence_c=2.0):
         """
         初始化 UCB 定价器。
@@ -18,7 +20,7 @@ class UCBPricer:
         self.experts = np.linspace(price_range[0], price_range[1], num_experts)
         self.num_experts = num_experts
         self.c = confidence_c
-        
+
         # 初始化每个专家的统计数据
         self.counts = np.zeros(num_experts)  # 每个价格被选择的次数
         self.values = np.zeros(num_experts)  # 每个价格的平均收益
@@ -33,7 +35,7 @@ class UCBPricer:
             int: 选定专家的索引。
         """
         self.total_rounds += 1
-        
+
         # 优先选择从未被选过的专家（价格）
         for i in range(self.num_experts):
             if self.counts[i] == 0:
@@ -43,13 +45,15 @@ class UCBPricer:
         ucb_values = np.zeros(self.num_experts)
         for i in range(self.num_experts):
             average_reward = self.values[i]
-            exploration_bonus = math.sqrt((self.c * math.log(self.total_rounds)) / self.counts[i])
+            exploration_bonus = math.sqrt(
+                (self.c * math.log(self.total_rounds)) / self.counts[i]
+            )
             ucb_values[i] = average_reward + exploration_bonus
-            
+
         # 选择 UCB 值最高的专家
         chosen_expert_index = np.argmax(ucb_values)
         chosen_price = self.experts[chosen_expert_index]
-        
+
         return float(chosen_price), chosen_expert_index
 
     def update_stats(self, chosen_expert_index, reward):
@@ -63,7 +67,7 @@ class UCBPricer:
         # 更新被选中价格的计数
         self.counts[chosen_expert_index] += 1
         n = self.counts[chosen_expert_index]
-        
+
         # 增量式更新平均收益
         old_value = self.values[chosen_expert_index]
         new_value = ((n - 1) / n) * old_value + (1 / n) * reward

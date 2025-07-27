@@ -2,10 +2,12 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from shared import ml_model, price_range
 
+
 class RevenueDivider:
     """
     实现了基于Shapley值的收益分配机制，包括近似算法和对复制鲁棒的算法。
     """
+
     def __init__(self, ml_model, gain_function):
         """
         初始化收益分配器。
@@ -21,12 +23,12 @@ class RevenueDivider:
         """
         辅助函数：为给定的特征子集计算预测增益。
         """
-        if X_subset.shape == 0: # 如果子集为空
+        if X_subset.shape == 0:  # 如果子集为空
             return 0.0
-        
+
         X_train = X_subset.T
         y_train = Y
-        
+
         self.ml_model.fit(X_train, y_train)
         y_pred = self.ml_model.predict(X_train)
         return self.gain_function(y_train, y_pred)
@@ -45,34 +47,34 @@ class RevenueDivider:
         """
         M, T = X.shape
         shapley_values = np.zeros(M)
-        
+
         for _ in range(K):
             # 随机生成一个特征排列
             permutation = np.random.permutation(M)
-            
+
             # 计算全集增益，用于最后一个特征的边际贡献计算
             gain_full_set = self._get_gain_for_subset(X, Y)
-            
+
             # 初始化前驱子集的增益
             gain_predecessors = 0.0
-            
+
             for i in range(M):
                 feature_idx = permutation[i]
-                
+
                 # 获取当前特征之前的所有特征
                 predecessor_indices = permutation[:i]
-                
+
                 # 计算加入当前特征后的增益
                 current_subset_indices = np.append(predecessor_indices, feature_idx)
                 gain_current = self._get_gain_for_subset(X[current_subset_indices], Y)
-                
+
                 # 计算边际贡献
                 marginal_contribution = gain_current - gain_predecessors
                 shapley_values[feature_idx] += marginal_contribution
-                
+
                 # 更新前驱子集的增益
                 gain_predecessors = gain_current
-                
+
         # 取平均值
         shapley_values /= K
         return shapley_values
@@ -92,25 +94,25 @@ class RevenueDivider:
         """
         # 1. 计算近似Shapley值
         approx_shapley = self.shapley_approx(X, Y, K)
-        
+
         M, T = X.shape
         robust_shapley = np.zeros(M)
-        
+
         # 计算所有特征之间的余弦相似度矩阵
         # X shape is (M, T), cosine_similarity expects (n_samples, n_features)
         similarity_matrix = cosine_similarity(X)
-        
+
         # 2. 应用指数惩罚
         for m in range(M):
             # 计算特征 m 与所有其他特征的总相似度
             # similarity_matrix[m] 是 m 与所有特征的相似度向量
             # np.sum(...) - 1 是因为要排除与自身的相似度（为1）
             total_similarity = np.sum(similarity_matrix[m]) - 1
-            
+
             # 计算惩罚因子
             penalty_factor = np.exp(-lambda_param * total_similarity)
-            
+
             # 应用惩罚
             robust_shapley[m] = approx_shapley[m] * penalty_factor
-            
+
         return robust_shapley

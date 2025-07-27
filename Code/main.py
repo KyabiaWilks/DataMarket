@@ -12,7 +12,9 @@ whichPricer = 0  # 可以选择 "DynamicPricer"(0) 或 "UCBPricer"(1)
 # 假设买家的估值和市场的价格都在  范围内
 price_range = (50, 500)
 if whichPricer == 0:
-    pricer = DynamicPricer(price_range=price_range, num_experts=20, learning_rate_delta=0.1)
+    pricer = DynamicPricer(
+        price_range=price_range, num_experts=20, learning_rate_delta=0.1
+    )
 else:
     pricer = UCBPricer(price_range=price_range, num_experts=20, confidence_c=2.0)
 auction = HonestAuction(ml_model=ml_model, gain_function=gain_function_rmse)
@@ -40,7 +42,9 @@ print(f"步骤 2 & 3: 买家到达，真实估值 μ_n = {mu_n:.2f}，诚实出�
 # 步骤 4 & 5: 市场分配数据，买家获得增益
 print("步骤 4 & 5: 市场分配数据并计算预测增益...")
 # 为了演示，我们先计算一下无噪声时的基准增益
-gain_no_noise = auction.get_prediction_gain(X, Y, p_n=b_n, b_n=b_n) # b_n >= p_n, 无噪声
+gain_no_noise = auction.get_prediction_gain(
+    X, Y, p_n=b_n, b_n=b_n
+)  # b_n >= p_n, 无噪声
 # 计算实际出价下的增益
 gain_actual = auction.get_prediction_gain(X, Y, p_n, b_n)
 print(f"  - 基准增益 (无噪声): {gain_no_noise:.4f}")
@@ -67,7 +71,7 @@ shapley_values = divider.shapley_robust(X, Y, K=50)
 if np.sum(shapley_values) > 0:
     allocation_ratios = shapley_values / np.sum(shapley_values)
 else:
-    allocation_ratios = np.ones(X.shape) / X.shape # 均分
+    allocation_ratios = np.ones(X.shape) / X.shape  # 均分
 
 seller_revenues = revenue_n * allocation_ratios
 print(f"  - 计算出的Shapley值 (归一化前): {np.round(shapley_values, 4)}")

@@ -1,5 +1,3 @@
-# shared.py
-
 from sklearn.linear_model import LinearRegression
 
 # 共享机器学习模型
